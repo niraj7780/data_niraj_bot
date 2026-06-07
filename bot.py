@@ -18,7 +18,7 @@ FILE_NAME = "user_data.txt"
 # ✅ States
 NAME, AGE, GENDER, MARRIED = range(4)
 
-# ✅ Start
+# ✅ Start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Enter your Name:")
     return NAME
@@ -68,10 +68,25 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Cancelled")
     return ConversationHandler.END
 
-# ✅ Telegram bot runner
+# ✅ ✅ SHOW DATA FUNCTION
+async def show_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        with open(FILE_NAME, "r") as f:
+            data = f.read()
+
+        if data.strip() == "":
+            data = "No data found"
+
+        await update.message.reply_text(data)
+
+    except FileNotFoundError:
+        await update.message.reply_text("No file found")
+
+# ✅ Telegram runner
 async def run_bot():
     app = ApplicationBuilder().token(TOKEN).build()
 
+    # ✅ Conversation Handler
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -85,10 +100,13 @@ async def run_bot():
 
     app.add_handler(conv_handler)
 
+    # ✅ SHOW COMMAND
+    app.add_handler(CommandHandler("show", show_data))
+
     print("✅ Bot started...")
     await app.run_polling()
 
-# ✅ Flask Web Server (for Render)
+# ✅ Flask app (for Render)
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
@@ -96,9 +114,11 @@ def home():
     return "✅ Bot is running"
 
 def start_bot():
-    asyncio.run(run_bot())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(run_bot())
 
-# ✅ Run both
+# ✅ Start both
 if __name__ == "__main__":
     threading.Thread(target=start_bot).start()
     flask_app.run(host="0.0.0.0", port=10000)
