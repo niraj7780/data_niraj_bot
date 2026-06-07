@@ -12,24 +12,26 @@ from telegram.ext import (
     filters,
 )
 
+# ✅ TOKEN from Render
 TOKEN = os.getenv("BOT_TOKEN")
+
 FILE_NAME = "user_data.txt"
 
-# ✅ States
+# ✅ STATES
 NAME, AGE, GENDER, MARRIED = range(4)
 
-# ✅ Start command
+# ✅ START
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Enter your Name:")
     return NAME
 
-# ✅ Name
+# ✅ NAME
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["name"] = update.message.text
     await update.message.reply_text("Enter your Age:")
     return AGE
 
-# ✅ Age
+# ✅ AGE
 async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["age"] = update.message.text
 
@@ -39,7 +41,7 @@ async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Select Gender:", reply_markup=reply_markup)
     return GENDER
 
-# ✅ Gender
+# ✅ GENDER
 async def get_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["gender"] = update.message.text
 
@@ -49,7 +51,7 @@ async def get_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Are you married?", reply_markup=reply_markup)
     return MARRIED
 
-# ✅ Married + Save
+# ✅ SAVE DATA
 async def get_married(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["married"] = update.message.text
 
@@ -60,15 +62,15 @@ async def get_married(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Name: {data['name']}, Age: {data['age']}, Gender: {data['gender']}, Married: {data['married']}\n"
         )
 
-    await update.message.reply_text("✅ Data saved successfully!")
+    await update.message.reply_text("✅ Data saved!")
     return ConversationHandler.END
 
-# ✅ Cancel
+# ✅ CANCEL
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("❌ Cancelled")
     return ConversationHandler.END
 
-# ✅ ✅ SHOW DATA FUNCTION
+# ✅ SHOW DATA
 async def show_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with open(FILE_NAME, "r") as f:
@@ -82,11 +84,10 @@ async def show_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except FileNotFoundError:
         await update.message.reply_text("No file found")
 
-# ✅ Telegram runner
+# ✅ MAIN BOT LOGIC (NO UPDATER ERROR ✅)
 async def run_bot():
     app = ApplicationBuilder().token(TOKEN).build()
 
-    # ✅ Conversation Handler
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -99,26 +100,30 @@ async def run_bot():
     )
 
     app.add_handler(conv_handler)
-
-    # ✅ SHOW COMMAND
     app.add_handler(CommandHandler("show", show_data))
 
     print("✅ Bot started...")
+
+    # ✅ Proper start (FIXED)
+    await app.initialize()
+    await app.start()
+    await app.bot.initialize()
     await app.run_polling()
 
-# ✅ Flask app (for Render)
+# ✅ FLASK SERVER (FOR RENDER)
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
     return "✅ Bot is running"
 
+# ✅ THREAD FIX
 def start_bot():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(run_bot())
 
-# ✅ Start both
+# ✅ START BOTH
 if __name__ == "__main__":
     threading.Thread(target=start_bot).start()
     flask_app.run(host="0.0.0.0", port=10000)
