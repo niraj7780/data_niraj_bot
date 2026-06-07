@@ -12,7 +12,7 @@ from telegram.ext import (
     filters,
 )
 
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")
 FILE_NAME = "user_data.txt"
 
 # ✅ States
