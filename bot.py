@@ -1,4 +1,5 @@
 import os
+import asyncio
 import threading
 from flask import Flask
 from telegram import Update, ReplyKeyboardMarkup
@@ -51,9 +52,7 @@ async def get_married(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = context.user_data
 
     with open(FILE_NAME, "a") as f:
-        f.write(
-            f"{data['name']}, {data['age']}, {data['gender']}, {data['married']}\n"
-        )
+        f.write(f"{data['name']}, {data['age']}, {data['gender']}, {data['married']}\n")
 
     await update.message.reply_text("✅ Data saved!")
     return ConversationHandler.END
@@ -65,6 +64,7 @@ async def show_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         await update.message.reply_text("No file found")
 
+# ✅ Telegram bot runs in MAIN thread ✅
 async def run_bot():
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -85,19 +85,19 @@ async def run_bot():
     print("✅ Bot started")
     await app.run_polling()
 
-# Flask for Render
+# ✅ Flask runs in background thread ✅
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
     return "Bot running ✅"
 
-def start_bot():
-    import asyncio
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(run_bot())
+def run_flask():
+    flask_app.run(host="0.0.0.0", port=10000)
 
 if __name__ == "__main__":
-    threading.Thread(target=start_bot).start()
-    flask_app.run(host="0.0.0.0", port=10000)
+    # Flask in thread
+    threading.Thread(target=run_flask).start()
+
+    # Bot in main thread ✅
+    asyncio.run(run_bot())
