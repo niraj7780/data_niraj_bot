@@ -1,5 +1,4 @@
 import os
-import asyncio
 import threading
 from flask import Flask
 from telegram import Update, ReplyKeyboardMarkup
@@ -16,6 +15,8 @@ TOKEN = os.getenv("BOT_TOKEN")
 FILE_NAME = "user_data.txt"
 
 NAME, AGE, GENDER, MARRIED = range(4)
+
+# ---------- BOT LOGIC ----------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Enter your Name:")
@@ -47,9 +48,8 @@ async def get_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return MARRIED
 
 async def get_married(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["married"] = update.message.text
-
     data = context.user_data
+    data["married"] = update.message.text
 
     with open(FILE_NAME, "a") as f:
         f.write(f"{data['name']}, {data['age']}, {data['gender']}, {data['married']}\n")
@@ -60,15 +60,21 @@ async def get_married(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with open(FILE_NAME, "r") as f:
-            await update.message.reply_text(f.read() or "No data")
+            text = f.read()
+
+        if not text:
+            text = "No data found"
+
+        await update.message.reply_text(text)
     except:
         await update.message.reply_text("No file found")
 
-# ✅ Telegram bot runs in MAIN thread ✅
-async def run_bot():
+# ---------- START BOT ----------
+
+def run_bot():
     app = ApplicationBuilder().token(TOKEN).build()
 
-    conv = ConversationHandler(
+    conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
@@ -79,25 +85,25 @@ async def run_bot():
         fallbacks=[],
     )
 
-    app.add_handler(conv)
+    app.add_handler(conv_handler)
     app.add_handler(CommandHandler("show", show_data))
 
-    print("✅ Bot started")
-    await app.run_polling()
+    print("✅ Bot started successfully")
+    app.run_polling()   # ✅ NO asyncio.run()
 
-# ✅ Flask runs in background thread ✅
+# ---------- FLASK ----------
+
 flask_app = Flask(__name__)
 
 @flask_app.route("/")
 def home():
-    return "Bot running ✅"
+    return "✅ Bot running"
 
 def run_flask():
     flask_app.run(host="0.0.0.0", port=10000)
 
-if __name__ == "__main__":
-    # Flask in thread
-    threading.Thread(target=run_flask).start()
+# ---------- MAIN ----------
 
-    # Bot in main thread ✅
-    asyncio.run(run_bot())
+if __name__ == "__main__":
+    threading.Thread(target=run_flask).start()
+    run_bot()   # ✅ main thread → no error
